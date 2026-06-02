@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bastion"
+version = "0.1.0"
+description = "SRE for security infrastructure — security signals, security SLOs, burn-rate alerts, and incidents."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Vishnu Kosuri" }]
+keywords = ["sre", "security", "slo", "prometheus", "grafana", "burn-rate", "mttd", "observability"]
+dependencies = [
+    "prometheus_client>=0.20",
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "PyYAML>=6.0",
+    "Jinja2>=3.1",
+    "requests>=2.31",
+    "cryptography>=42.0",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8.0", "httpx>=0.27"]
+
+[project.scripts]
+bastion = "bastion.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/VISHNU0906/bastion"
+
+[tool.setuptools.packages.find]
+include = ["bastion*"]
+
+[tool.setuptools.package-data]
+"bastion.slo" = ["templates/*.j2"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

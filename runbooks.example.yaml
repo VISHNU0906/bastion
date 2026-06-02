@@ -1,0 +1,17 @@
+# Runbook links mapped to incident KINDS. When Bastion opens an incident it
+# attaches the matching runbook URL so the responder has a starting point.
+# Replace these with your real runbook URLs (Confluence, Notion, a repo, etc.).
+
+runbooks:
+  # Critical runtime-security detection (Falco/Wazuh/EDR).
+  runtime_detection: https://runbooks.internal/security/runtime-detection
+  # A security SLO burned its error budget (burn-rate or threshold alert).
+  slo_breach: https://runbooks.internal/security/slo-breach
+  # TLS certificate approaching/at expiry.
+  cert_expiry: https://runbooks.internal/security/cert-expiry
+  # Auth-failure ratio elevated (possible credential stuffing / brute force).
+  auth_failures: https://runbooks.internal/security/auth-failures
+  # Unpatched critical dependency CVE past the age limit.
+  dependency_cve: https://runbooks.internal/security/dependency-cve
+  # Fallback used when an incident kind has no explicit mapping.
+  default: https://runbooks.internal/security/general

@@ -1,0 +1,9 @@
+# A sample requirements file with intentionally OLD, known-vulnerable pins, so
+# the dependency-CVE collector finds real OSV.dev advisories during the demo.
+# These versions are well known to have published CVEs; do NOT use them for
+# anything real. When offline, the collector degrades to check_success=0.
+requests==2.19.1
+urllib3==1.24.1
+jinja2==2.10
+pyyaml==5.1
+cryptography==2.3

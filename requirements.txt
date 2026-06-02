@@ -1,0 +1,13 @@
+# Bastion runtime dependencies.
+#
+# The SLO engine (burnrate / generate / templates) needs only PyYAML + Jinja2.
+# The exporter and ingest webhook add prometheus_client + FastAPI. requests and
+# cryptography power the network collectors (CVE lookups, TLS cert inspection).
+# Everything degrades gracefully offline, and the test suite mocks all network.
+prometheus_client>=0.20
+fastapi>=0.110
+uvicorn[standard]>=0.29
+PyYAML>=6.0
+Jinja2>=3.1
+requests>=2.31
+cryptography>=42.0

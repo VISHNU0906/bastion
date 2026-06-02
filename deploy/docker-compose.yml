@@ -1,0 +1,90 @@
+# Bastion demo stack.
+#
+#   docker compose -f deploy/docker-compose.yml up --build
+#
+# Brings up:
+#   * rule-gen   one-shot: runs `bastion generate` -> security rules into a
+#                shared volume that Prometheus reads.
+#   * bastion    the exporter: /metrics + detection-ingest webhook + /status.
+#   * prometheus scrapes bastion, evaluates the burn-rate + threshold rules.
+#   * alertmanager routes firing security-SLO breaches to Bastion -> incidents.
+#   * grafana    auto-provisioned with the security-posture + security-SLO
+#                dashboards.
+#   * secgen     posts synthetic detections + auth failures so the dashboards
+#                and alerts come alive.
+#
+# Open Grafana at http://localhost:3000 (admin/admin).
+
+name: bastion
+
+services:
+  rule-gen:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    command: ["python", "-m", "bastion.cli", "generate", "-f", "slos.example.yaml", "-o", "/rules"]
+    volumes:
+      - rules:/rules
+
+  bastion:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    environment:
+      BASTION_CONFIG: config.example.yaml
+    ports:
+      - "9300:9300"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:9300/healthz', timeout=2).status==200 else 1)"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    depends_on:
+      rule-gen:
+        condition: service_completed_successfully
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - rules:/etc/prometheus/rules:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=2h"
+    ports:
+      - "9090:9090"
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+    ports:
+      - "9093:9093"
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/etc/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+
+  secgen:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    depends_on:
+      bastion:
+        condition: service_healthy
+    command: ["python", "sample/secgen.py", "--url", "http://bastion:9300", "--interval", "5", "--burst-every", "6"]
+
+volumes:
+  rules:

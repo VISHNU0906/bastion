@@ -1,0 +1,84 @@
+# Bastion configuration — targets, thresholds, enabled collectors.
+#
+# Every section is optional and falls back to a sane default. Collectors run on
+# each Prometheus scrape of /metrics; each degrades gracefully (a failure emits
+# a "collector unhealthy" metric, it never crashes the scrape).
+#
+# This example is what the bundled docker-compose demo uses.
+
+exporter:
+  host: 0.0.0.0
+  port: 9300
+
+# ---------------------------------------------------------------------------
+# TLS certificate expiry — "are our certs healthy?"
+# Emits days-to-expiry per endpoint; a cert with > warning_days left is
+# "compliant" (drives the "99.x% of certs valid > 14 days" SLO).
+# ---------------------------------------------------------------------------
+tls:
+  enabled: true
+  warning_days: 14
+  timeout_seconds: 5.0
+  targets:
+    - name: badssl-good
+      host: example.com
+      port: 443
+    # An intentionally-expired endpoint is great for a live demo of the SLO
+    # breaching. Uncomment to watch a cert go non-compliant:
+    # - name: badssl-expired
+    #   host: expired.badssl.com
+    #   port: 443
+
+# ---------------------------------------------------------------------------
+# HTTP security headers — HSTS / CSP / X-Frame-Options / X-Content-Type-Options.
+# Emits presence (1/0) per header per target + a coverage ratio.
+# ---------------------------------------------------------------------------
+headers:
+  enabled: true
+  timeout_seconds: 5.0
+  required_headers:
+    - Strict-Transport-Security
+    - Content-Security-Policy
+    - X-Frame-Options
+    - X-Content-Type-Options
+  targets:
+    - name: example
+      url: https://example.com
+
+# ---------------------------------------------------------------------------
+# Dependency CVEs — audits a pip requirements file against OSV.dev.
+# Emits vuln counts by severity + the age (days) of the oldest unpatched
+# critical vuln (drives the "0 critical CVEs older than 7 days" SLO).
+# Degrades to a zeroed, unhealthy collector when offline.
+# ---------------------------------------------------------------------------
+cves:
+  enabled: true
+  requirements_file: sample/vulnerable-requirements.txt
+  max_critical_age_days: 7
+  timeout_seconds: 8.0
+  osv_url: https://api.osv.dev/v1/querybatch
+
+# ---------------------------------------------------------------------------
+# Auth failures — parse an auth log for failed logins, OR receive a pushed
+# counter via the ingest API. Emits a failure rate over a rolling window
+# (drives the "auth-failure ratio < 1%" SLO).
+# ---------------------------------------------------------------------------
+auth:
+  enabled: true
+  log_file: sample/auth.log
+  window_seconds: 300
+
+# ---------------------------------------------------------------------------
+# Runtime-security detections — Falco/Wazuh-style alerts pushed to
+# /ingest/detection. Emits bastion_security_detections_total{rule,priority}
+# and records detection latency for MTTD (mean time to detect).
+# ---------------------------------------------------------------------------
+detections:
+  enabled: true
+  critical_priorities:
+    - Critical
+    - Emergency
+  mttd_target_seconds: 300   # 5 minutes — the "MTTD for critical < 5m" SLO
+
+# Runbooks mapped to incident kinds (see runbooks.example.yaml).
+runbooks_file: runbooks.example.yaml

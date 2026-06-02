@@ -1,0 +1,198 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "graphTooltip": 0,
+  "links": [],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["bastion", "security", "posture"],
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": true, "text": "Prometheus", "value": "bastion-prometheus" },
+        "hide": 0,
+        "label": "Datasource",
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "type": "datasource"
+      }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timezone": "",
+  "title": "Bastion - Security Posture",
+  "uid": "bastion-security-posture",
+  "version": 1,
+  "panels": [
+    {
+      "id": 1, "type": "row", "title": "Certificates & Headers",
+      "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }, "panels": []
+    },
+    {
+      "id": 2, "type": "timeseries", "title": "TLS cert days to expiry",
+      "description": "Days until each monitored certificate expires. Crosses 0 = expired.",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 1 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "d",
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 5 },
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "red", "value": null },
+            { "color": "orange", "value": 14 },
+            { "color": "green", "value": 30 }
+          ] }
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${datasource}" }, "editorMode": "code",
+          "expr": "bastion_tls_cert_expiry_days", "legendFormat": "{{endpoint}}", "range": true, "refId": "A" }
+      ]
+    },
+    {
+      "id": 3, "type": "bargauge", "title": "Security header coverage",
+      "description": "Fraction of required security headers present per target (HSTS/CSP/X-Frame/X-Content-Type).",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 1 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit", "min": 0, "max": 1,
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "red", "value": null },
+            { "color": "orange", "value": 0.5 },
+            { "color": "green", "value": 1 }
+          ] }
+        },
+        "overrides": []
+      },
+      "options": { "displayMode": "gradient", "orientation": "horizontal",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${datasource}" }, "editorMode": "code",
+          "expr": "bastion_security_header_coverage_ratio", "legendFormat": "{{target}}", "range": true, "refId": "A" }
+      ]
+    },
+    {
+      "id": 10, "type": "row", "title": "Dependencies & Auth",
+      "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 }, "panels": []
+    },
+    {
+      "id": 11, "type": "stat", "title": "Critical CVEs over age limit",
+      "description": "Critical/high dependency CVEs older than the configured limit. Target: 0.",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 10 },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "thresholds": { "mode": "absolute", "steps": [
+          { "color": "green", "value": null }, { "color": "red", "value": 1 } ] } },
+        "overrides": []
+      },
+      "options": { "colorMode": "background", "graphMode": "area",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${datasource}" }, "editorMode": "code",
+          "expr": "bastion_dependency_critical_over_age", "legendFormat": "over-age critical", "range": true, "refId": "A" }
+      ]
+    },
+    {
+      "id": 12, "type": "timeseries", "title": "Dependency vulns by severity",
+      "description": "Known vulnerabilities in scanned dependencies, by severity (OSV.dev).",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 9, "x": 6, "y": 10 },
+      "fieldConfig": { "defaults": { "unit": "short",
+        "custom": { "drawStyle": "bars", "fillOpacity": 60, "lineWidth": 1, "stacking": { "mode": "normal" } } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${datasource}" }, "editorMode": "code",
+          "expr": "bastion_dependency_vulns", "legendFormat": "{{severity}}", "range": true, "refId": "A" }
+      ]
+    },
+    {
+      "id": 13, "type": "timeseries", "title": "Auth failure ratio",
+      "description": "rate(auth failures) / rate(auth attempts). The auth-failure-ratio SLO targets < 1%.",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 9, "x": 15, "y": 10 },
+      "fieldConfig": {
+        "defaults": { "unit": "percentunit",
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10 },
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null }, { "color": "red", "value": 0.01 } ] } },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${datasource}" }, "editorMode": "code",
+          "expr": "sum(rate(bastion_auth_failures_total[5m])) / clamp_min(sum(rate(bastion_auth_attempts_total[5m])), 1)",
+          "legendFormat": "auth failure ratio", "range": true, "refId": "A" }
+      ]
+    },
+    {
+      "id": 20, "type": "row", "title": "Detections, MTTD & Incidents",
+      "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 }, "panels": []
+    },
+    {
+      "id": 21, "type": "timeseries", "title": "Detection rate by priority",
+      "description": "Runtime-security detections ingested per second, by priority.",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 19 },
+      "fieldConfig": { "defaults": { "unit": "ops",
+        "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${datasource}" }, "editorMode": "code",
+          "expr": "sum by (priority) (rate(bastion_security_detections_total[5m]))",
+          "legendFormat": "{{priority}}", "range": true, "refId": "A" }
+      ]
+    },
+    {
+      "id": 22, "type": "timeseries", "title": "MTTD (mean time to detect)",
+      "description": "Rolling mean detection latency by priority. The MTTD SLO targets critical detections < 5m (300s).",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 19 },
+      "fieldConfig": {
+        "defaults": { "unit": "s",
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10 },
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null }, { "color": "red", "value": 300 } ] } },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${datasource}" }, "editorMode": "code",
+          "expr": "bastion_detection_mttd_seconds", "legendFormat": "MTTD {{priority}}", "range": true, "refId": "A" }
+      ]
+    },
+    {
+      "id": 23, "type": "stat", "title": "Open security incidents",
+      "description": "Currently-open incidents opened by Bastion, by severity.",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 19 },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "thresholds": { "mode": "absolute", "steps": [
+          { "color": "green", "value": null }, { "color": "orange", "value": 1 }, { "color": "red", "value": 3 } ] } },
+        "overrides": []
+      },
+      "options": { "colorMode": "background", "graphMode": "area",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${datasource}" }, "editorMode": "code",
+          "expr": "sum by (severity) (bastion_incidents_open)", "legendFormat": "{{severity}}", "range": true, "refId": "A" }
+      ]
+    }
+  ]
+}

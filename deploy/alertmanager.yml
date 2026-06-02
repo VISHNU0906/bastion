@@ -1,0 +1,33 @@
+# Alertmanager config for the Bastion demo.
+# Routes security-SLO breaches to Bastion's /webhook/breach so a firing
+# burn-rate / threshold alert opens a tracked incident (closing the loop:
+# signal -> metric -> SLO -> alert -> incident).
+
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: bastion-incidents
+  group_by: ["slo", "severity"]
+  group_wait: 10s
+  group_interval: 30s
+  repeat_interval: 1h
+  routes:
+    # Page-severity burns route the same place here, but you would split these
+    # to PagerDuty/Opsgenie in production.
+    - receiver: bastion-incidents
+      matchers:
+        - severity = "page"
+
+receivers:
+  - name: bastion-incidents
+    webhook_configs:
+      - url: http://bastion:9300/webhook/breach
+        send_resolved: false
+
+inhibit_rules:
+  # A firing fast (page) burn inhibits the slower ticket burn for the same SLO
+  # to avoid double-paging on the same root cause.
+  - source_matchers: [severity = "page"]
+    target_matchers: [severity = "ticket"]
+    equal: ["slo"]

@@ -1,0 +1,84 @@
+# Bastion security SLOs.
+#
+# These four SLOs exercise all four SLI shapes Bastion supports. The metric
+# names match what the collectors / ingest webhook emit (see bastion/metrics.py),
+# so the generated rules light up against a running Bastion exporter.
+#
+# SLI shapes (the reason this is not a generic SLO tool):
+#   ratio          counter-rate ratio        -> burn-rate over rate()
+#   freshness      point-in-time gauge ratio -> avg_over_time of a boolean gauge
+#   latency_ratio  fraction within a target  -> burn-rate over good/total
+#   threshold      a hard invariant          -> one simple comparison alert
+
+group_name: bastion_security_slos
+
+slos:
+  # -----------------------------------------------------------------------
+  # 1. Certificate freshness (FRESHNESS / gauge ratio).
+  #    "99.9% of monitored certs valid for more than 14 days."
+  #    bastion_tls_cert_valid is a 0/1 gauge per endpoint (1 = > 14 days left).
+  #    rate() is meaningless on a gauge, so we average the boolean over the
+  #    window: error ratio = 1 - avg(avg_over_time(valid[w])).
+  # -----------------------------------------------------------------------
+  - name: Certificate Freshness
+    description: >-
+      99.9% of monitored TLS certificates have more than 14 days until expiry.
+    objective: 99.9
+    window: 30d
+    sli:
+      type: freshness
+      # GOOD = the boolean compliance gauge (1 when > warning_days remain).
+      good: bastion_tls_cert_valid
+
+  # -----------------------------------------------------------------------
+  # 2. Auth-failure ratio (RATIO / counter rate).
+  #    "Auth-failure ratio < 1%" => 99% of auth attempts should not fail.
+  #    error ratio = rate(failures) / rate(attempts).
+  # -----------------------------------------------------------------------
+  - name: Auth Failure Ratio
+    description: >-
+      Fewer than 1% of authentication attempts fail (auth-failure ratio < 1%).
+    objective: 99
+    window: 30d
+    sli:
+      type: ratio
+      # ERROR = failed auth events; TOTAL = all attempts.
+      error: bastion_auth_failures_total
+      total: bastion_auth_attempts_total
+
+  # -----------------------------------------------------------------------
+  # 3. Critical CVE age (THRESHOLD / hard invariant).
+  #    "0 critical CVEs older than 7 days." There is no error budget when the
+  #    target is exactly zero, so this is a single comparison alert, not a
+  #    burn-rate pair. The collector exposes the over-age count directly.
+  # -----------------------------------------------------------------------
+  - name: Critical CVE Age
+    description: >-
+      No critical/high dependency CVE remains unpatched for more than 7 days.
+    window: 30d
+    sli:
+      type: threshold
+      metric: bastion_dependency_critical_over_age
+      comparison: ">"
+      limit: 0
+      severity: page
+
+  # -----------------------------------------------------------------------
+  # 4. Detection MTTD (LATENCY_RATIO).
+  #    "MTTD for critical detections < 5m." Reframed (the SRE way) as a ratio:
+  #    99% of critical detections should be detected within 5 minutes (300s).
+  #    GOOD = detections in the le="300" latency bucket; TOTAL = all detections.
+  #    This makes MTTD an error-budgeted SLO with burn-rate alerting, instead of
+  #    a single brittle threshold on a noisy mean.
+  # -----------------------------------------------------------------------
+  - name: Detection MTTD
+    description: >-
+      99% of critical runtime-security detections are detected within 5 minutes.
+    objective: 99
+    window: 30d
+    sli:
+      type: latency_ratio
+      # GOOD = detections whose latency fell in the <=300s histogram bucket.
+      good: bastion_detection_latency_seconds_bucket{le="300.0",priority="Critical"}
+      # TOTAL = all critical detections observed.
+      total: bastion_detection_latency_seconds_count{priority="Critical"}
