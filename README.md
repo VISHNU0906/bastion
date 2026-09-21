@@ -6,8 +6,8 @@ SLOs with multi-burn-rate alerting, ships Grafana dashboards, and turns
 security-SLO breaches into tracked incidents with MTTD/MTTR.
 
 Most security tooling tells you *what's wrong right now*. Bastion tells you
-*whether your security posture is meeting a target over time, and pages you —
-fast and accurately — when it isn't*. It applies the reliability math SRE teams
+*whether your security posture is meeting a target over time, and pages you :
+fast and accurately :  when it isn't*. It applies the reliability math SRE teams
 already use for uptime (SLOs, error budgets, burn-rate alerts) to **security**
 signals: certificate health, security-header coverage, dependency CVEs, auth
 failures, and runtime detections.
@@ -16,17 +16,17 @@ failures, and runtime detections.
 
 ## Security SLOs, error budgets, and MTTD in four sentences
 
-- A **security SLO** is a measured target for a security signal — e.g. "99% of
-  critical detections are detected within 5 minutes" — instead of a vibe or a
+- A **security SLO** is a measured target for a security signal :  e.g. "99% of
+  critical detections are detected within 5 minutes" :  instead of a vibe or a
   quarterly audit.
 - An **error budget** is the small amount of "bad" the SLO tolerates (a 99.9%
   target allows 0.1%), which reframes security from "never fail" to "fail less
   than X and react fast when you're burning the budget too quickly."
 - **MTTD (mean time to detect)** is the time from when something bad *happened*
   to when you *noticed* it; **MTTR (mean time to resolve)** is from when an
-  incident opened to when it was fixed — Bastion measures both as real deltas.
+  incident opened to when it was fixed :  Bastion measures both as real deltas.
 - Bastion alerts using the **multi-window, multi-burn-rate** method from the
-  Google SRE Workbook, so your pager fires on genuine, sustained budget burn —
+  Google SRE Workbook, so your pager fires on genuine, sustained budget burn :
   not on every transient blip.
 
 A deeper write-up (including why security SLIs need different math per shape) is
@@ -56,9 +56,9 @@ open http://localhost:3000      # login admin / admin
 
 In Grafana you'll see two dashboards (folder **Bastion**):
 
-- **Security Posture** — cert days-to-expiry, header coverage, CVE counts, auth
+- **Security Posture** :  cert days-to-expiry, header coverage, CVE counts, auth
   failure ratio, detection rate, **MTTD**, and open incidents.
-- **Security SLOs** — error-budget-remaining gauges, **burn rate**, and the SLI
+- **Security SLOs** :  error-budget-remaining gauges, **burn rate**, and the SLI
   error ratio per window for each SLO.
 
 Every ~6 cycles `secgen` fires a *burst*: a critical detection with a large
@@ -67,8 +67,8 @@ failures (the auth-failure-ratio SLO burns budget). Then it calms down so you ca
 watch the error budget recover. Other UIs while the stack is up:
 
 - Prometheus: <http://localhost:9090> (the **Alerts** tab shows the *fast*
-  burn-rate alerts — 1h/5m and 6h/30m — go pending → firing during a burst; the
-  slow 24h/3d alerts need a longer-running Prometheus, see Honest limitations)
+  burn-rate alerts :  1h/5m and 6h/30m :  go pending → firing during a burst; the
+  slow 24h/3d alerts need a longer-running Prometheus, see Limitations)
 - Alertmanager: <http://localhost:9093>
 - Bastion: <http://localhost:9300/status> and <http://localhost:9300/metrics>
 
@@ -83,7 +83,7 @@ watch the error budget recover. Other UIs while the stack is up:
 ## What Bastion collects
 
 Each collector runs on every Prometheus scrape, is wrapped in error isolation
-(one failure never breaks the scrape — it sets `bastion_collector_up=0`), and
+(one failure never breaks the scrape :  it sets `bastion_collector_up=0`), and
 degrades gracefully offline.
 
 | Collector         | Signal                                   | Key metric(s)                                            |
@@ -209,8 +209,8 @@ bastion show     -f slos.example.yaml           # print computed burn-rate thres
 | `bastion_security_header_present`               | gauge     | target, header    | 1 if a security header is present                  |
 | `bastion_security_header_coverage_ratio`        | gauge     | target            | fraction of required headers present               |
 | `bastion_dependency_vulns`                      | gauge     | severity          | known CVE count by severity                         |
-| `bastion_dependency_oldest_critical_age_days`   | gauge     | —                 | age of the oldest unpatched critical/high CVE      |
-| `bastion_dependency_critical_over_age`          | gauge     | —                 | criticals older than the limit (threshold SLI)     |
+| `bastion_dependency_oldest_critical_age_days`   | gauge     | :                  | age of the oldest unpatched critical/high CVE      |
+| `bastion_dependency_critical_over_age`          | gauge     | :                  | criticals older than the limit (threshold SLI)     |
 | `bastion_auth_failures_total`                   | counter   | source            | auth failures observed                              |
 | `bastion_auth_attempts_total`                   | counter   | source            | auth attempts observed                              |
 | `bastion_auth_failure_rate`                     | gauge     | source            | failures/sec over the rolling window               |
@@ -219,7 +219,7 @@ bastion show     -f slos.example.yaml           # print computed burn-rate thres
 | `bastion_detection_mttd_seconds`                | gauge     | priority          | rolling mean time to detect                        |
 | `bastion_incidents_total`                       | counter   | severity, kind    | incidents opened                                   |
 | `bastion_incidents_open`                        | gauge     | severity          | currently-open incidents                           |
-| `bastion_incident_mttr_seconds`                 | histogram | —                 | time to resolve                                    |
+| `bastion_incident_mttr_seconds`                 | histogram | :                  | time to resolve                                    |
 | `bastion_collector_up`                          | gauge     | collector         | 1 if the collector ran without error               |
 
 ---
@@ -237,7 +237,7 @@ The exporter (FastAPI) serves both metrics and push endpoints:
 | `/healthz`               | GET    | liveness                                                   |
 | `/status`                | GET    | JSON: collectors, detections, open incidents               |
 
-Example — push a detection with a backdated event time so MTTD is real:
+Example :  push a detection with a backdated event time so MTTD is real:
 
 ```bash
 curl -X POST http://localhost:9300/ingest/detection \
@@ -273,7 +273,7 @@ client.
 
 ---
 
-## Honest limitations
+## Limitations
 
 - **Demo timescale vs. window sizes.** The generated rules include 24h/3d long
   windows and a 30-day budget gauge, but the demo's Prometheus retention is 2h.
@@ -298,15 +298,15 @@ client.
 
 ## Roadmap
 
-- **Falco / Wazuh native integration** — first-class adapters for their webhook
+- **Falco / Wazuh native integration** :  first-class adapters for their webhook
   payloads (Bastion already accepts the Falco-style shape).
-- **CloudWatch security metrics** — an exporter that pulls GuardDuty / Security
+- **CloudWatch security metrics** :  an exporter that pulls GuardDuty / Security
   Hub / Config findings into Bastion SLIs.
-- **More SLIs** — secrets-scanning freshness, IAM key age, MFA coverage, patch
+- **More SLIs** :  secrets-scanning freshness, IAM key age, MFA coverage, patch
   latency, WAF block ratio.
-- **Incident sinks** — PagerDuty / Opsgenie / Slack receivers off the incident
+- **Incident sinks** :  PagerDuty / Opsgenie / Slack receivers off the incident
   engine, with the runbook link attached.
-- **SLO history** — persist error-budget burn over time for reporting
+- **SLO history** :  persist error-budget burn over time for reporting
   (security-SLO compliance %, MTTD/MTTR trends).
 
 ---
